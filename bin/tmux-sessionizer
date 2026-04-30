@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  tmux-sessionizer — session switcher con fzf para tmux
+#  Bindeado a: prefix + C-j (Ctrl+Space C-j)
+# ============================================================================
+
+# Si no estamos adentro de tmux, salir con error
+if [ -z "$TMUX" ]; then
+    echo "Tenés que estar adentro de tmux para usar esto"
+    exit 1
+fi
+
+# Lista las sesiones, le pasa a fzf, y captura la elegida
+selected=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | \
+    fzf-tmux -p 60%,40% \
+        --prompt "  Switch session > " \
+        --header "Enter: ir | Esc: cancelar | Tipear nombre nuevo + Enter: crear" \
+        --print-query \
+        --expect=enter \
+    | tail -n +2)
+
+# fzf-tmux con --print-query devuelve 2 líneas:
+# 1) lo que tipeaste
+# 2) lo que seleccionaste de la lista (puede estar vacío si tipeaste algo nuevo)
+query=$(echo "$selected" | head -n 1)
+match=$(echo "$selected" | tail -n 1)
+
+# Si seleccionaste algo de la lista, usá eso
+# Si no, usá lo que tipeaste como nombre nuevo
+target="${match:-$query}"
+
+# Si no hay nada (Esc), salir
+[ -z "$target" ] && exit 0
+
+# Si la sesión existe, cambiar a ella; si no, crearla
+if tmux has-session -t="$target" 2>/dev/null; then
+    tmux switch-client -t "$target"
+else
+    tmux new-session -d -s "$target"
+    tmux switch-client -t "$target"
+fi

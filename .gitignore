@@ -1,0 +1,20 @@
+# Editores
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups locales (los que crea install.sh con timestamp)
+*.bak
+*.bak.*
+
+# Logs
+*.log
+
+# Local overrides (futuro: por si querés un fragment.sh privado por máquina)
+bash/local.sh
