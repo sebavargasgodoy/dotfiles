@@ -2,24 +2,28 @@
 # ============================================================================
 #  tmux-sessionizer — session switcher con fzf para tmux
 #  Bindeado a: prefix + C-j (Ctrl+Space C-j)
+#
+#  Diseñado para correr DENTRO de un display-popup de tmux.
+#  Por eso usa fzf plano (NO fzf-tmux) — no se pueden anidar popups.
 # ============================================================================
 
-# Si no estamos adentro de tmux, salir con error
-if [ -z "$TMUX" ]; then
-    echo "Tenés que estar adentro de tmux para usar esto"
+# Detectar si hay servidor tmux corriendo (más robusto que chequear $TMUX,
+# que puede no heredarse correctamente en algunos contextos de display-popup).
+if ! tmux info >/dev/null 2>&1; then
+    echo "tmux server no está corriendo"
     exit 1
 fi
 
-# Lista las sesiones, le pasa a fzf, y captura la elegida
+# Lista las sesiones existentes, le pasa a fzf, y captura la elegida.
+# Usamos fzf plano (no fzf-tmux) porque ya estamos dentro de un popup.
 selected=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | \
-    fzf-tmux -p 60%,40% \
-        --prompt "  Switch session > " \
+    fzf --prompt "  Switch session > " \
         --header "Enter: ir | Esc: cancelar | Tipear nombre nuevo + Enter: crear" \
         --print-query \
         --expect=enter \
     | tail -n +2)
 
-# fzf-tmux con --print-query devuelve 2 líneas:
+# fzf con --print-query devuelve 2 líneas:
 # 1) lo que tipeaste
 # 2) lo que seleccionaste de la lista (puede estar vacío si tipeaste algo nuevo)
 query=$(echo "$selected" | head -n 1)
