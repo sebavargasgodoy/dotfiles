@@ -5,6 +5,11 @@
 #
 #  Diseñado para correr DENTRO de un display-popup de tmux.
 #  Por eso usa fzf plano (NO fzf-tmux) — no se pueden anidar popups.
+#
+#  Uso:
+#    Enter   → ir a la sesión seleccionada (o a la que matcheó por fuzzy)
+#    Ctrl+N  → CREAR sesión con el nombre tipeado (ignora cualquier match)
+#    Esc     → cancelar
 # ============================================================================
 
 # Detectar si hay servidor tmux corriendo (más robusto que chequear $TMUX,
@@ -14,29 +19,39 @@ if ! tmux info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Lista las sesiones existentes, le pasa a fzf, y captura la elegida.
-# Usamos fzf plano (no fzf-tmux) porque ya estamos dentro de un popup.
-selected=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | \
+# Lista las sesiones existentes y se las pasa a fzf.
+# --print-query  : devuelve también lo que tipeó el usuario
+# --expect=ctrl-n: si apretás Ctrl+N, fzf reporta esa tecla en una línea aparte
+output=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | \
     fzf --prompt "  Switch session > " \
-        --header "Enter: ir | Esc: cancelar | Tipear nombre nuevo + Enter: crear" \
+        --header "Enter: ir | Ctrl+N: crear con lo tipeado | Esc: cancelar" \
         --print-query \
-        --expect=enter \
-    | tail -n +2)
+        --expect=ctrl-n)
 
-# fzf con --print-query devuelve 2 líneas:
-# 1) lo que tipeaste
-# 2) lo que seleccionaste de la lista (puede estar vacío si tipeaste algo nuevo)
-query=$(echo "$selected" | head -n 1)
-match=$(echo "$selected" | tail -n 1)
+# Con --print-query + --expect, fzf devuelve SIEMPRE 3 líneas:
+#   1) query: lo que tipeaste
+#   2) key:   la tecla apretada (vacío si fue Enter, "ctrl-n" si fue Ctrl+N)
+#   3) match: lo que se seleccionó de la lista (vacío si no había match)
+query=$(sed -n '1p' <<< "$output")
+key=$(sed -n   '2p' <<< "$output")
+match=$(sed -n '3p' <<< "$output")
 
-# Si seleccionaste algo de la lista, usá eso
-# Si no, usá lo que tipeaste como nombre nuevo
-target="${match:-$query}"
+# Decidir el target según la tecla:
+#   - Ctrl+N  → forzar crear con la query, ignorando cualquier match
+#   - Enter   → usar el match si existe (fuzzy o selección), si no la query
+if [ "$key" = "ctrl-n" ]; then
+    target="$query"
+else
+    target="${match:-$query}"
+fi
 
-# Si no hay nada (Esc), salir
+# Si no hay nada (Esc o query vacía), salir
 [ -z "$target" ] && exit 0
 
-# Si la sesión existe, cambiar a ella; si no, crearla
+# Sanitizar: tmux no acepta puntos, dos puntos ni espacios en nombres de sesión
+target=$(echo "$target" | tr ' .:' '_')
+
+# Si la sesión existe, switch; si no, crearla y switch
 if tmux has-session -t="$target" 2>/dev/null; then
     tmux switch-client -t "$target"
 else
