@@ -4,17 +4,20 @@
 #   Ubuntu/Debian: /usr/share/doc/fzf/examples/
 #   RHEL/CentOS:   /usr/share/fzf/shell/
 #   fzf moderno:   /usr/share/fzf/
+#   Install manual:  /usr/local/share/fzf/   ← CentOS 7 sin paquete fzf
 
 _load_fzf_integration() {
     local candidates_keybindings=(
         "/usr/share/doc/fzf/examples/key-bindings.bash"
         "/usr/share/fzf/shell/key-bindings.bash"
         "/usr/share/fzf/key-bindings.bash"
+        "/usr/local/share/fzf/key-bindings.bash"
     )
     local candidates_completion=(
         "/usr/share/doc/fzf/examples/completion.bash"
         "/usr/share/fzf/shell/completion.bash"
         "/usr/share/fzf/completion.bash"
+        "/usr/local/share/fzf/completion.bash"
     )
 
     local f
