@@ -89,7 +89,14 @@ OS_FAMILY="$(detect_os)"
 PKG_INSTALL_CMD=""
 case "$OS_FAMILY" in
     debian) PKG_INSTALL_CMD="sudo apt update && sudo apt install -y" ;;
-    rhel)   PKG_INSTALL_CMD="sudo dnf install -y" ;;
+    rhel)
+        # CentOS 7 usa yum; CentOS/RHEL/Rocky/Alma 8+ y Fedora usan dnf
+        if command -v dnf >/dev/null 2>&1; then
+            PKG_INSTALL_CMD="sudo dnf install -y"
+        else
+            PKG_INSTALL_CMD="sudo yum install -y"
+        fi
+        ;;
     *)      PKG_INSTALL_CMD="" ;;
 esac
 
