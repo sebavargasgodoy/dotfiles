@@ -1,5 +1,4 @@
 # ─── SSH HELPERS ────────────────────────────────────────────────────────────
-
 # sshl: lista servers de ~/.ssh/config con fuzzy finder
 #
 # Parsea cualquier comentario que esté inmediatamente antes de un bloque Host
@@ -16,24 +15,47 @@
 sshl() {
     local selection
     selection=$(awk '
-        # Cualquier comentario es candidato a ser descripción del próximo Host
+        # Comentario: candidato a descripción del próximo Host
         /^# / {
             desc = $0
             sub(/^# */, "", desc)
-            # Limpiar separadores repetidos en cualquier parte del texto
             gsub(/[-=#_]{2,}/, "", desc)
-            # Limpiar separadores sueltos al inicio o al final
             sub(/^[-=#_]+ */, "", desc)
             sub(/ *[-=#_]+$/, "", desc)
-            # Colapsar espacios y trim
             gsub(/  +/, " ", desc)
             sub(/^ +/, "", desc)
             sub(/ +$/, "", desc)
-            if (length(desc) > 0) last_desc = desc
+            if (length(desc) > 0) pending_desc = desc
             next
         }
-        /^Host / && $2 !~ /\*/ {
-            printf "%-30s  %s\n", $2, last_desc
+        # Inicio de bloque Host
+        /^Host / {
+            # Si veníamos juntando un bloque previo y tenía HostName, lo imprimimos
+            if (current_host != "" && current_ip != "") {
+                printf "%-18s  %-16s  %s\n", current_host, current_ip, current_desc
+            }
+            current_host = ""
+            current_ip = ""
+            current_desc = pending_desc
+
+            # Tomamos el primer nombre del bloque (sin wildcards)
+            if ($2 !~ /\*/) {
+                current_host = $2
+            }
+            next
+        }
+        # HostName dentro del bloque actual
+        /^[[:space:]]*HostName / {
+            if (current_host != "") {
+                current_ip = $2
+            }
+            next
+        }
+        END {
+            # Cerrar el último bloque
+            if (current_host != "" && current_ip != "") {
+                printf "%-18s  %-16s  %s\n", current_host, current_ip, current_desc
+            }
         }
     ' ~/.ssh/config 2>/dev/null | \
         fzf --prompt="  SSH > " \
