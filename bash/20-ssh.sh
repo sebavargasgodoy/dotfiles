@@ -32,7 +32,7 @@ sshl() {
         /^Host / {
             # Si veníamos juntando un bloque previo y tenía HostName, lo imprimimos
             if (current_host != "" && current_ip != "") {
-                printf "%-18s  %-16s  %s\n", current_host, current_ip, current_desc
+                printf "%-28s  %-16s  %s\n", current_host, current_ip, current_desc
             }
             current_host = ""
             current_ip = ""
@@ -54,7 +54,7 @@ sshl() {
         END {
             # Cerrar el último bloque
             if (current_host != "" && current_ip != "") {
-                printf "%-18s  %-16s  %s\n", current_host, current_ip, current_desc
+                printf "%-28s  %-16s  %s\n", current_host, current_ip, current_desc
             }
         }
     ' ~/.ssh/config 2>/dev/null | \
