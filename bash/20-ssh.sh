@@ -57,7 +57,7 @@ sshl() {
                 printf "%-28s  %-16s  %s\n", current_host, current_ip, current_desc
             }
         }
-    ' ~/.ssh/config 2>/dev/null | \
+	' ~/.ssh/config ~/.ssh/config.d/*.conf 2>/dev/null | \
         fzf --prompt="  SSH > " \
             --height=50% \
             --reverse \
@@ -77,7 +77,7 @@ sshl() {
 _ssh_complete_hosts() {
     local cur=${COMP_WORDS[COMP_CWORD]}
     local hosts
-    hosts=$(grep '^Host ' ~/.ssh/config 2>/dev/null | awk '{print $2}' | grep -v '\*')
+    hosts=$(cat ~/.ssh/config ~/.ssh/config.d/*.conf 2>/dev/null | grep '^Host ' | awk '{for(i=2;i<=NF;i++) print $i}' | grep -v '\*')
     COMPREPLY=($(compgen -W "$hosts" -- "$cur"))
 }
 complete -F _ssh_complete_hosts ssh
